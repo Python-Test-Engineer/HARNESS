@@ -24,12 +24,11 @@ class ToolModuleTests(unittest.TestCase):
             },
         )
 
-    def test_load_skill_tool_exposes_hello_instructions(self):
-        instructions = agent_tools.TOOLS["load_skill"]("hello")
-        self.assertIn("bright_cyan", instructions)
-        self.assertEqual(instructions.count("\\"), 1)
+    def test_load_skill_tool_exposes_txt_output_instructions(self):
+        instructions = agent_tools.TOOLS["load_skill"]("txt-output")
         self.assertIn("This is Craig West's minimal coding agent", instructions)
-        self.assertIn("four blank lines", instructions)
+        self.assertIn("two blank lines", instructions)
+        self.assertIn("row of 50 '*'", instructions)
 
     def test_list_files_lists_sorted_entries_and_directories(self):
         with tempfile.TemporaryDirectory() as temp_dir:

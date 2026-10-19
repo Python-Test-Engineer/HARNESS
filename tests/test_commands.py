@@ -38,17 +38,23 @@ class CommandIntegrationTests(unittest.TestCase):
                 "choices": [{"message": {"content": "Size report complete."}}],
                 "usage": {"prompt_tokens": 120, "total_tokens": 150},
             }
+            sent_messages = []
+
+            def mock_chat(messages):
+                sent_messages.append([dict(message) for message in messages])
+                return response
+
             output = StringIO()
             console = Console(file=output, force_terminal=True, color_system="standard")
 
             with patch.object(agent_commands, "COMMANDS_DIR", Path(directory)), patch.object(
-                agent, "chat", return_value=response
-            ) as chat, patch.object(agent, "model_context_length", return_value=1000), patch.object(
+                agent, "chat", side_effect=mock_chat
+            ), patch.object(agent, "model_context_length", return_value=1000), patch.object(
                 agent, "console", console
             ):
                 agent.agent_loop("/GET_SIZE")
 
-        self.assertIn("Return measured prompt and context usage.", chat.call_args.args[0][0]["content"])
+        self.assertIn("Return measured prompt and context usage.", sent_messages[0][0]["content"])
         self.assertIn("Tokens used: 150 / 1000 (15.00%)", output.getvalue())
 
 

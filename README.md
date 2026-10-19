@@ -18,7 +18,7 @@ Install dependencies with `uv sync`, then start the agent with a request:
 uv run agent.py "write a hello world script and run it"
 ```
 
-If no request is passed on the command line, the program prompts for one. Files created by the demo go in `work/`.
+If no request is passed on the command line, the program prompts for one. After each answer, enter a follow-up request to continue with the conversation and its prior context; press Enter on a blank follow-up or type `/exit` to finish. Files created by the demo go in `work/`.
 
 ## Configuration
 
@@ -26,7 +26,7 @@ Set `OPENROUTER_API_KEY` in the process environment or in the project-root `.env
 
 ## Skills
 
-Add Markdown files to `skills/` with YAML frontmatter containing `name` and `description`, followed by the skill instructions. The agent lists their descriptions in its system prompt and can call `load_skill` to load instructions for a relevant skill before acting. `skills/HELLO.md` is the example: it adds an attribution prefix to generated files and formats HELLO greetings as colored ASCII art using Rich markup.
+Add Markdown files to `skills/` with YAML frontmatter containing `name` and `description`, followed by the skill instructions. The agent lists their descriptions in its system prompt and can call `load_skill` to load instructions for a relevant skill before acting. `skills/TXT_OUTPUT.md` is the current example; it specifies a prefix for generated files.
 
 ## Slash commands
 

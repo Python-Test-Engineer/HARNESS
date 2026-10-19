@@ -42,7 +42,11 @@ SYSTEM_PROMPT = (
 # --------------------------------------------------------------------------
 # THE LOOP
 # --------------------------------------------------------------------------
-def agent_loop(prompt: str, max_steps: int = 8) -> None:
+def agent_loop(
+    prompt: str,
+    max_steps: int = 8,
+    messages: list[dict] | None = None,
+) -> list[dict]:
     command = load_command(prompt)
     console.rule("[bold cyan]mini coding agent[/bold cyan]", style="cyan")
     console.print(
@@ -52,10 +56,14 @@ def agent_loop(prompt: str, max_steps: int = 8) -> None:
     )
     console.print()
 
-    system_prompt = SYSTEM_PROMPT
+    if messages is None:
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    base_system_prompt = messages[0]["content"]
     if command:
         command_name, instructions = command
-        system_prompt += f"\n\nCommand /{command_name} instructions:\n{instructions}"
+        system_prompt = (
+            f"{base_system_prompt}\n\nCommand /{command_name} instructions:\n{instructions}"
+        )
         if command_name.casefold() == "show_prompt":
             console.print("[bold]Current system prompt:[/bold]")
             console.print(system_prompt, markup=False, highlight=False, soft_wrap=True)
@@ -64,11 +72,9 @@ def agent_loop(prompt: str, max_steps: int = 8) -> None:
                 markup=False,
                 highlight=False,
             )
-            return
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": prompt},
-    ]
+            return messages
+        messages[0]["content"] = system_prompt
+    messages.append({"role": "user", "content": prompt})
 
     latest_usage = {}
     for step in range(1, max_steps + 1):
@@ -89,11 +95,13 @@ def agent_loop(prompt: str, max_steps: int = 8) -> None:
 
         tool_calls = msg.get("tool_calls") or []
         if not tool_calls:
+            messages.append(msg)
             console.print()
             console.rule("[bold cyan]done[/bold cyan]", style="cyan")
             if command:
                 _print_size_report(prompt, latest_usage)
-            return
+            messages[0]["content"] = base_system_prompt
+            return messages
 
         messages.append(msg)
         for tc in tool_calls:
@@ -127,6 +135,8 @@ def agent_loop(prompt: str, max_steps: int = 8) -> None:
     console.print("[bold red]max steps reached[/bold red]")
     if command:
         _print_size_report(prompt, latest_usage)
+    messages[0]["content"] = base_system_prompt
+    return messages
 
 
 def _print_size_report(prompt: str, usage: dict) -> None:
@@ -141,8 +151,31 @@ def _print_size_report(prompt: str, usage: dict) -> None:
     )
 
 
+def run_session(
+    initial_prompt: str | None = None,
+    max_steps: int = 8,
+    input_fn=input,
+) -> None:
+    """Run consecutive prompts in one conversation until blank input or exit."""
+    messages = None
+    prompt = initial_prompt
+    while True:
+        if prompt is None:
+            try:
+                prompt = input_fn("Request: ")
+            except EOFError:
+                return
+        prompt = prompt.strip()
+        if not prompt or prompt.casefold() in {"/exit", "/quit"}:
+            return
+
+        messages = agent_loop(prompt, max_steps=max_steps, messages=messages)
+        try:
+            prompt = input_fn("Follow-up request (blank or /exit to finish): ")
+        except EOFError:
+            return
+
+
 if __name__ == "__main__":
     prompt = " ".join(sys.argv[1:]).strip()
-    if not prompt:
-        prompt = input("Request: ").strip()
-    agent_loop(prompt)
+    run_session(prompt or None)
