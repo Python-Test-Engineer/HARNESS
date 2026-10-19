@@ -1,9 +1,11 @@
 from datetime import datetime
 from random import randint
-from pathlib import Path
 
 filename = f"output{randint(1000, 9999)}.txt"
-message = f"HELLO PYDATA {datetime.now().isoformat(sep=' ', timespec='seconds')}\n"
+timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+message = f"HELLO PYDATA {timestamp}"
 
-Path(filename).write_text(message, encoding="utf-8")
-print(f"Wrote {message.strip()!r} to {filename}")
+with open(filename, "w", encoding="utf-8") as output_file:
+    output_file.write(message + "\n")
+
+print(f"Wrote {message!r} to {filename}")
