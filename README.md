@@ -8,7 +8,7 @@ A small, educational coding-agent demo. Give it a natural-language task and it u
 - `list_files` to list entries in `work/` or one of its subdirectories.
 - `run` for executing shell commands with `work/` as the working directory.
 
-The loop and tool dispatcher are implemented in `agent.py`; `rich` formats the console output.
+`agent.py` runs the ReAct loop, `agent_tools.py` defines the tool functions and schemas, and `agent_utils.py` handles configuration and OpenRouter requests. `rich` formats the console output.
 
 ## Run
 

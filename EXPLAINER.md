@@ -6,6 +6,10 @@ essentials. There are no frameworks and no LLM SDKs: the only dependency is
 `rich`, purely for pretty console output. Everything else is stdlib
 (`urllib`, `json`, `subprocess`).
 
+Responsibilities are split across three modules: `agent.py` owns the loop and
+console output, `agent_tools.py` defines tool implementations and schemas, and
+`agent_utils.py` loads configuration and sends OpenRouter requests.
+
 The whole point is to show *what an agent actually is*: not one magic LLM call,
 but a **loop** in which the model repeatedly decides what to do, the host executes
 it, and the result is handed back — until the model stops asking for tools.
@@ -22,7 +26,7 @@ request ─▶ [ model decides ] ─▶ tool call ─▶ host runs it ─▶ res
 ## The five tools the agent can use
 
 An agent can only do whatever its host exposes. Here, exactly five functions,
-all sandboxed to the `work/` directory:
+usually used with `work/` as their working directory:
 
 | Tool | Signature | What it does |
 |------|-----------|--------------|
@@ -32,12 +36,12 @@ all sandboxed to the `work/` directory:
 | `list_files` | `(path=".")` | List files and subdirectories in `work/` (or a subdirectory) |
 | `run` | `(command)` | Run a shell command, cwd = `work/` |
 
-Because all I/O is locked to `work/`, the agent can write a `hello.py`, run
+For ordinary relative paths under `work/`, the agent can write a `hello.py`, run
 `python hello.py`, see an error, edit it, and re-run — a complete fix cycle.
 
-> **Security note:** `run()` uses `shell=True` and is *not* sandboxed beyond its
-> working directory. The agent can read/write anything under `work/` and execute
-> arbitrary commands. Fine for a local demo; don't point this at untrusted prompts.
+> **Security note:** This is not a sandbox. File tools other than `list_files`
+> do not enforce workspace containment, and `run()` uses `shell=True` with the
+> permissions of the user running the program. Do not use it with untrusted prompts.
 
 ---
 

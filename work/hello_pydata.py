@@ -1,17 +1,9 @@
-import random
 from datetime import datetime
+from random import randint
+from pathlib import Path
 
-# Generate a random number between 1000 and 9999
-number = random.randint(1000, 9999)
+filename = f"output{randint(1000, 9999)}.txt"
+message = f"HELLO PYDATA {datetime.now().isoformat(sep=' ', timespec='seconds')}\n"
 
-# Build the output filename
-filename = f"output{number}.txt"
-
-# Create a date-time stamp
-timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-# Write the message with the timestamp to the file
-with open(filename, "w") as f:
-    f.write(f"HELLO PYDATA {timestamp}\n")
-
-print(f"Wrote to {filename}")
+Path(filename).write_text(message, encoding="utf-8")
+print(f"Wrote {message.strip()!r} to {filename}")

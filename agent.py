@@ -14,137 +14,16 @@ Run:  uv run agent.py "write a hello world script and run it"
 from __future__ import annotations
 
 import json
-import os
-import subprocess
 import sys
-import urllib.request
-from pathlib import Path
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
 
+from agent_tools import TOOLS
+from agent_utils import chat
+
 console = Console()
-
-WORKDIR = Path("work")
-WORKDIR.mkdir(exist_ok=True)
-
-
-# --------------------------------------------------------------------------
-# TOOLS — the only things the agent can do (mirrors real coding agents)
-# --------------------------------------------------------------------------
-def write_file(path: str, content: str) -> str:
-    (WORKDIR / path).write_text(content)
-    return f"Created {path}"
-
-
-def edit_file(path: str, old: str, new: str) -> str:
-    p = WORKDIR / path
-    p.write_text(p.read_text().replace(old, new, 1))
-    return f"Edited {path}: {old!r} -> {new!r}"
-
-
-def read_file(path: str) -> str:
-    return (WORKDIR / path).read_text()
-
-
-def list_files(path: str = ".") -> str:
-    work_root = WORKDIR.resolve()
-    directory = (WORKDIR / path).resolve()
-    if not directory.is_relative_to(work_root):
-        raise ValueError("Path must stay inside the work directory.")
-    entries = sorted(directory.iterdir(), key=lambda entry: entry.name.casefold())
-    if not entries:
-        return "(empty directory)"
-    return "\n".join(
-        f"{entry.name}/" if entry.is_dir() else entry.name for entry in entries
-    )
-
-
-def run(command: str) -> str:
-    out = subprocess.run(
-        command, shell=True, capture_output=True, text=True, cwd=WORKDIR
-    )
-    return out.stdout.strip() or out.stderr.strip()
-
-
-TOOLS = {
-    "write_file": write_file,
-    "edit_file": edit_file,
-    "read_file": read_file,
-    "list_files": list_files,
-    "run": run,
-}
-
-# OpenAI function-calling schema for the tools
-TOOL_SCHEMAS = [
-    {
-        "type": "function",
-        "function": {
-            "name": "write_file",
-            "description": "Create or overwrite a file in the work dir.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {"type": "string"},
-                    "content": {"type": "string"},
-                },
-                "required": ["path", "content"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "edit_file",
-            "description": "Replace the first occurrence of old with new in a file.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {"type": "string"},
-                    "old": {"type": "string"},
-                    "new": {"type": "string"},
-                },
-                "required": ["path", "old", "new"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "read_file",
-            "description": "Read a file in the work dir.",
-            "parameters": {
-                "type": "object",
-                "properties": {"path": {"type": "string"}},
-                "required": ["path"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "list_files",
-            "description": "List files and subdirectories in a directory in the work dir. Defaults to the work dir.",
-            "parameters": {
-                "type": "object",
-                "properties": {"path": {"type": "string"}},
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "run",
-            "description": "Run a shell command in the work dir (e.g. 'python hello.py').",
-            "parameters": {
-                "type": "object",
-                "properties": {"command": {"type": "string"}},
-                "required": ["command"],
-            },
-        },
-    },
-]
 
 SYSTEM_PROMPT = (
     "You are a minimal coding agent. You can write, edit and read files "
@@ -152,68 +31,6 @@ SYSTEM_PROMPT = (
     "create the script, run it, fix any errors, and confirm the final output. "
     "Finish with a short plain-text summary of what you did."
 )
-
-
-# --------------------------------------------------------------------------
-# LLM (OpenRouter, OpenAI-compatible chat completions)
-# --------------------------------------------------------------------------
-def _load_env_file() -> None:
-    """Load simple KEY=VALUE settings without overriding the process env."""
-    env_file = Path(__file__).resolve().parent / ".env"
-    if not env_file.is_file():
-        return
-
-    for line in env_file.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        if line.startswith("export "):
-            line = line[len("export "):].lstrip()
-        name, separator, value = line.partition("=")
-        if not separator or not name.strip():
-            continue
-        name, value = name.strip(), value.strip()
-        if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
-            value = value[1:-1]
-        elif " #" in value:
-            value = value.split(" #", 1)[0].rstrip()
-        os.environ.setdefault(name, value)
-
-
-def _api_key() -> str:
-    _load_env_file()
-    key = os.environ.get("OPENROUTER_API_KEY")
-    if key:
-        return key
-    raise SystemExit("No OPENROUTER_API_KEY found (environment or project .env).")
-
-
-def _model() -> str:
-    _load_env_file()
-    m = os.environ.get("MODEL")
-    if m:
-        return m
-    return "deepseek/deepseek-v4.1-flash"
-
-
-def chat(messages: list[dict]) -> dict:
-    body = json.dumps(
-        {
-            "model": _model(),
-            "messages": messages,
-            "tools": TOOL_SCHEMAS,
-        }
-    ).encode()
-    req = urllib.request.Request(
-        "https://openrouter.ai/api/v1/chat/completions",
-        data=body,
-        headers={
-            "Authorization": f"Bearer {_api_key()}",
-            "Content-Type": "application/json",
-        },
-    )
-    with urllib.request.urlopen(req, timeout=120) as resp:
-        return json.loads(resp.read())
 
 
 # --------------------------------------------------------------------------
