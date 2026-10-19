@@ -5,8 +5,8 @@ A real ReAct loop: type a request, and the agent uses its tools
 
     think -> tool call -> result -> repeat -> final answer
 
-LLM calls go to OpenRouter. The key is read from the OPENROUTER_API_KEY
-environment variable, or from ../OPENROUTER.txt if that is not set.
+LLM settings are read from environment variables first, then from this
+project's .env file (OPENROUTER_API_KEY and optionally MODEL).
 
 Run:  uv run agent.py "write a hello world script and run it"
 """
@@ -132,27 +132,42 @@ SYSTEM_PROMPT = (
 # --------------------------------------------------------------------------
 # LLM (OpenRouter, OpenAI-compatible chat completions)
 # --------------------------------------------------------------------------
+def _load_env_file() -> None:
+    """Load simple KEY=VALUE settings without overriding the process env."""
+    env_file = Path(__file__).resolve().parent / ".env"
+    if not env_file.is_file():
+        return
+
+    for line in env_file.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export "):].lstrip()
+        name, separator, value = line.partition("=")
+        if not separator or not name.strip():
+            continue
+        name, value = name.strip(), value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+            value = value[1:-1]
+        elif " #" in value:
+            value = value.split(" #", 1)[0].rstrip()
+        os.environ.setdefault(name, value)
+
+
 def _api_key() -> str:
+    _load_env_file()
     key = os.environ.get("OPENROUTER_API_KEY")
     if key:
         return key
-    txt = Path(__file__).resolve().parent / "OPENROUTER.txt"
-    if txt.exists():
-        for line in txt.read_text().splitlines():
-            if line.startswith("OPENROUTER_API_KEY="):
-                return line.split("=", 1)[1].strip().strip('"')
-    raise SystemExit("No OPENROUTER_API_KEY found (env var or ../OPENROUTER.txt).")
+    raise SystemExit("No OPENROUTER_API_KEY found (environment or project .env).")
 
 
 def _model() -> str:
+    _load_env_file()
     m = os.environ.get("MODEL")
     if m:
         return m
-    txt = Path(__file__).resolve().parent.parent / "OPENROUTER.txt"
-    if txt.exists():
-        for line in txt.read_text().splitlines():
-            if line.startswith("MODEL="):
-                return line.split("=", 1)[1].strip().strip('"')
     return "deepseek/deepseek-v4.1-flash"
 
 
