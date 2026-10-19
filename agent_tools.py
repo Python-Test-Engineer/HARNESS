@@ -5,6 +5,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+from agent_skills import read_skill
+
 WORKDIR = Path("work")
 WORKDIR.mkdir(exist_ok=True)
 
@@ -37,6 +39,11 @@ def list_files(path: str = ".") -> str:
     )
 
 
+def load_skill(name: str) -> str:
+    """Load instructions for one skill discovered in the project skills/ directory."""
+    return read_skill(name)
+
+
 def run(command: str) -> str:
     out = subprocess.run(
         command, shell=True, capture_output=True, text=True, cwd=WORKDIR
@@ -49,6 +56,7 @@ TOOLS = {
     "edit_file": edit_file,
     "read_file": read_file,
     "list_files": list_files,
+    "load_skill": load_skill,
     "run": run,
 }
 
@@ -104,6 +112,18 @@ TOOL_SCHEMAS = [
             "parameters": {
                 "type": "object",
                 "properties": {"path": {"type": "string"}},
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "load_skill",
+            "description": "Load the instructions for a relevant skill from skills/.",
+            "parameters": {
+                "type": "object",
+                "properties": {"name": {"type": "string"}},
+                "required": ["name"],
             },
         },
     },

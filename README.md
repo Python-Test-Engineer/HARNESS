@@ -24,6 +24,10 @@ If no request is passed on the command line, the program prompts for one. Files 
 
 Set `OPENROUTER_API_KEY` in the process environment or in the project-root `.env` file. Optionally set `MODEL` there to choose the OpenRouter model. For both settings, an existing process environment value takes precedence over the `.env` value. The `.env` file is ignored by Git; keep credentials out of source control.
 
+## Skills
+
+Add Markdown files to `skills/` with YAML frontmatter containing `name` and `description`, followed by the skill instructions. The agent lists their descriptions in its system prompt and can call `load_skill` to load instructions for a relevant skill before acting. `skills/HELLO.md` is the example: it adds an attribution prefix to generated files and formats HELLO greetings as colored ASCII art using Rich markup.
+
 ## Limitations
 
 This is a minimal teaching harness, not a production agent or security sandbox. The model can request shell commands, which run with the permissions of the user running the program. Review the code and requests before using it with sensitive data or on an untrusted task.

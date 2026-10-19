@@ -20,6 +20,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
 
+from agent_skills import skill_catalog_prompt
 from agent_tools import TOOLS
 from agent_utils import chat
 
@@ -29,7 +30,11 @@ SYSTEM_PROMPT = (
     "You are a minimal coding agent. You can write, edit and read files "
     "in the work directory, list its files, and run shell commands there. Work step by step: "
     "create the script, run it, fix any errors, and confirm the final output. "
-    "Finish with a short plain-text summary of what you did."
+    "Before acting or replying, check the available skills below. If a skill directly "
+    "applies, call load_skill with its name and follow its instructions; do not load "
+    "unrelated skills. Finish with a short plain-text summary of what you did."
+    "\n\nAvailable skills:\n"
+    + skill_catalog_prompt()
 )
 
 

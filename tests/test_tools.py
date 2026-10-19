@@ -14,8 +14,22 @@ class ToolModuleTests(unittest.TestCase):
         self.assertEqual(schema_names, set(agent_tools.TOOLS))
         self.assertEqual(
             set(agent_tools.TOOLS),
-            {"write_file", "edit_file", "read_file", "list_files", "run"},
+            {
+                "write_file",
+                "edit_file",
+                "read_file",
+                "list_files",
+                "run",
+                "load_skill",
+            },
         )
+
+    def test_load_skill_tool_exposes_hello_instructions(self):
+        instructions = agent_tools.TOOLS["load_skill"]("hello")
+        self.assertIn("bright_cyan", instructions)
+        self.assertEqual(instructions.count("\\"), 1)
+        self.assertIn("This is Craig West's minimal coding agent", instructions)
+        self.assertIn("four blank lines", instructions)
 
     def test_list_files_lists_sorted_entries_and_directories(self):
         with tempfile.TemporaryDirectory() as temp_dir:
