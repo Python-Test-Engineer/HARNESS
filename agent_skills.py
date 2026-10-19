@@ -65,6 +65,4 @@ def skill_catalog_prompt(skills_dir: Path = SKILLS_DIR) -> str:
     skills = discover_skills(skills_dir)
     if not skills:
         return "(no skills available)"
-    return "\n".join(
-        f"- {skill['name']}: {skill['description']}" for skill in skills
-    )
+    return "\n".join(f"- {skill['name']}: {skill['description']}" for skill in skills)

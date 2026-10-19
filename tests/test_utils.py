@@ -11,6 +11,20 @@ class UtilityTests(unittest.TestCase):
         with patch.dict(os.environ, {"MODEL": "test/model"}):
             self.assertEqual(agent_utils._model(), "test/model")
 
+    def test_model_context_length_reads_openrouter_model_metadata(self):
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return b'{"data":[{"id":"test/model","context_length":8192}]}'
+
+        with patch("agent_utils.urllib.request.urlopen", return_value=Response()):
+            self.assertEqual(agent_utils.model_context_length("test/model"), 8192)
+
     def test_chat_sends_the_tool_schemas(self):
         class Response:
             def __enter__(self):

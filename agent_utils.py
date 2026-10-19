@@ -49,6 +49,28 @@ def _model() -> str:
     return "deepseek/deepseek-v4.1-flash"
 
 
+def model_context_length(model: str | None = None) -> int | None:
+    """Look up a model's context limit from OpenRouter's public model catalog."""
+    model_id = model or _model()
+    request = urllib.request.Request(
+        "https://openrouter.ai/api/v1/models",
+        headers={"Accept": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:
+            catalog = json.loads(response.read())
+    except (OSError, ValueError):
+        return None
+
+    models = catalog.get("data", []) if isinstance(catalog, dict) else []
+    for entry in models:
+        if isinstance(entry, dict) and entry.get("id", "").casefold() == model_id.casefold():
+            context_length = entry.get("context_length")
+            if isinstance(context_length, int) and not isinstance(context_length, bool):
+                return context_length if context_length > 0 else None
+    return None
+
+
 def chat(messages: list[dict]) -> dict:
     body = json.dumps(
         {

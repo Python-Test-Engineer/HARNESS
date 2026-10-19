@@ -20,9 +20,10 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
 
+from agent_commands import format_size_report, load_command
 from agent_skills import skill_catalog_prompt
 from agent_tools import TOOLS
-from agent_utils import chat
+from agent_utils import chat, model_context_length
 
 console = Console()
 
@@ -42,6 +43,7 @@ SYSTEM_PROMPT = (
 # THE LOOP
 # --------------------------------------------------------------------------
 def agent_loop(prompt: str, max_steps: int = 8) -> None:
+    command = load_command(prompt)
     console.rule("[bold cyan]mini coding agent[/bold cyan]", style="cyan")
     console.print(
         Panel(
@@ -50,13 +52,29 @@ def agent_loop(prompt: str, max_steps: int = 8) -> None:
     )
     console.print()
 
+    system_prompt = SYSTEM_PROMPT
+    if command:
+        command_name, instructions = command
+        system_prompt += f"\n\nCommand /{command_name} instructions:\n{instructions}"
+        if command_name.casefold() == "show_prompt":
+            console.print("[bold]Current system prompt:[/bold]")
+            console.print(system_prompt, markup=False, highlight=False, soft_wrap=True)
+            console.print(
+                f"\nPrompt length: {len(system_prompt)} characters",
+                markup=False,
+                highlight=False,
+            )
+            return
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": prompt},
     ]
 
+    latest_usage = {}
     for step in range(1, max_steps + 1):
         reply = chat(messages)
+        if isinstance(reply.get("usage"), dict):
+            latest_usage = reply["usage"]
         msg = reply["choices"][0]["message"]
 
         if msg.get("content"):
@@ -73,6 +91,8 @@ def agent_loop(prompt: str, max_steps: int = 8) -> None:
         if not tool_calls:
             console.print()
             console.rule("[bold cyan]done[/bold cyan]", style="cyan")
+            if command:
+                _print_size_report(prompt, latest_usage)
             return
 
         messages.append(msg)
@@ -105,6 +125,20 @@ def agent_loop(prompt: str, max_steps: int = 8) -> None:
         console.print()
 
     console.print("[bold red]max steps reached[/bold red]")
+    if command:
+        _print_size_report(prompt, latest_usage)
+
+
+def _print_size_report(prompt: str, usage: dict) -> None:
+    report = format_size_report(prompt, usage, model_context_length())
+    console.print(
+        Panel(
+            report,
+            title="[bold]GET_SIZE[/bold]",
+            border_style="cyan",
+            padding=(0, 1),
+        )
+    )
 
 
 if __name__ == "__main__":

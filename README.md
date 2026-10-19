@@ -28,6 +28,10 @@ Set `OPENROUTER_API_KEY` in the process environment or in the project-root `.env
 
 Add Markdown files to `skills/` with YAML frontmatter containing `name` and `description`, followed by the skill instructions. The agent lists their descriptions in its system prompt and can call `load_skill` to load instructions for a relevant skill before acting. `skills/HELLO.md` is the example: it adds an attribution prefix to generated files and formats HELLO greetings as colored ASCII art using Rich markup.
 
+## Slash commands
+
+Add a Markdown instruction file to `commands/`, then invoke it as the first token in a request. For example, `uv run agent.py /GET_SIZE` loads `commands/GET_SIZE.md`. Command names are case-insensitive. `/GET_SIZE` reports the request's character and word counts, provider-reported input tokens, and context-window usage based on OpenRouter's latest usage metadata and model context limit. `/SHOW_PROMPT` prints the current assembled system prompt and its character length, then exits without sending a model request.
+
 ## Limitations
 
 This is a minimal teaching harness, not a production agent or security sandbox. The model can request shell commands, which run with the permissions of the user running the program. Review the code and requests before using it with sensitive data or on an untrusted task.
