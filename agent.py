@@ -48,6 +48,19 @@ def read_file(path: str) -> str:
     return (WORKDIR / path).read_text()
 
 
+def list_files(path: str = ".") -> str:
+    work_root = WORKDIR.resolve()
+    directory = (WORKDIR / path).resolve()
+    if not directory.is_relative_to(work_root):
+        raise ValueError("Path must stay inside the work directory.")
+    entries = sorted(directory.iterdir(), key=lambda entry: entry.name.casefold())
+    if not entries:
+        return "(empty directory)"
+    return "\n".join(
+        f"{entry.name}/" if entry.is_dir() else entry.name for entry in entries
+    )
+
+
 def run(command: str) -> str:
     out = subprocess.run(
         command, shell=True, capture_output=True, text=True, cwd=WORKDIR
@@ -59,6 +72,7 @@ TOOLS = {
     "write_file": write_file,
     "edit_file": edit_file,
     "read_file": read_file,
+    "list_files": list_files,
     "run": run,
 }
 
@@ -110,6 +124,17 @@ TOOL_SCHEMAS = [
     {
         "type": "function",
         "function": {
+            "name": "list_files",
+            "description": "List files and subdirectories in a directory in the work dir. Defaults to the work dir.",
+            "parameters": {
+                "type": "object",
+                "properties": {"path": {"type": "string"}},
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "run",
             "description": "Run a shell command in the work dir (e.g. 'python hello.py').",
             "parameters": {
@@ -123,7 +148,7 @@ TOOL_SCHEMAS = [
 
 SYSTEM_PROMPT = (
     "You are a minimal coding agent. You can write, edit and read files "
-    "in the work directory, and run shell commands there. Work step by step: "
+    "in the work directory, list its files, and run shell commands there. Work step by step: "
     "create the script, run it, fix any errors, and confirm the final output. "
     "Finish with a short plain-text summary of what you did."
 )

@@ -19,9 +19,9 @@ request ─▶ [ model decides ] ─▶ tool call ─▶ host runs it ─▶ res
 
 ---
 
-## The four tools the agent can use
+## The five tools the agent can use
 
-An agent can only do whatever its host exposes. Here, exactly four functions,
+An agent can only do whatever its host exposes. Here, exactly five functions,
 all sandboxed to the `work/` directory:
 
 | Tool | Signature | What it does |
@@ -29,6 +29,7 @@ all sandboxed to the `work/` directory:
 | `write_file` | `(path, content)` | Create or overwrite a file in `work/` |
 | `edit_file` | `(path, old, new)` | Replace the *first* occurrence of `old` with `new` |
 | `read_file` | `(path)` | Return a file's contents |
+| `list_files` | `(path=".")` | List files and subdirectories in `work/` (or a subdirectory) |
 | `run` | `(command)` | Run a shell command, cwd = `work/` |
 
 Because all I/O is locked to `work/`, the agent can write a `hello.py`, run

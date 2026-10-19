@@ -5,6 +5,7 @@ A small, educational coding-agent demo. Give it a natural-language task and it u
 ## Available tools
 
 - `write_file`, `edit_file`, and `read_file` for working with files.
+- `list_files` to list entries in `work/` or one of its subdirectories.
 - `run` for executing shell commands with `work/` as the working directory.
 
 The loop and tool dispatcher are implemented in `agent.py`; `rich` formats the console output.
